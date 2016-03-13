@@ -152,7 +152,12 @@ class Folder(Item):
             params['fields'] = ','.join(fields)
         box_response = self._session.get(url, params=params)
         response = box_response.json()
-        return [Translator().translate(item['type'])(self._session, item['id'], item) for item in response['entries']]
+        # keep this more memory and processing constant
+        # the serialization to the Python-based object is more expensive than the 'id' etc lookups on the entry.
+        for item in response['entries']:
+            yield Translator().translate(item['type'])(self._session, item['id'], item)
+        else:
+            raise StopIteration()  # just in case there were no entries, so any caller looping will get chucked out.
 
     def upload_stream(
             self,
